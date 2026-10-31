@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>My Student Study Planner</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px #00000015;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4338ca;
+        }
+
+        .description {
+            text-align: center;
+            color: #555;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 4px;
+            font-size: 14px;
+        }
+
+        .add-button {
+            background: #4338ca;
+            color: white;
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+        }
+
+        .task {
+            background: #f8fafc;
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 8px;
+            overflow-wrap: anywhere;
+        }
+
+        .task h3 {
+            margin: 0 0 6px;
+        }
+
+        .task p {
+            color: #555;
+            margin: 4px 0;
+        }
+
+        .complete-button {
+            background: #16a34a;
+            color: white;
+        }
+
+        .delete-button {
+            background: #dc2626;
+            color: white;
+        }
+
+        .completed h3 {
+            text-decoration: line-through;
+            color: #15803d;
+        }
+
+        .message {
+            text-align: center;
+            color: #666;
+            padding: 15px;
+        }
+
+        .status {
+            text-align: center;
+            color: #4338ca;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>My Study Planner 📚</h1>
+
+        <p class="description">
+            Organise your studies, one task at a time!
+        </p>
+
+        <form id="taskForm">
+
+            <label for="taskTitle">Task title</label>
+
+            <input
+                type="text"
+                id="taskTitle"
+                placeholder="e.g. Revise Accounting"
+                required
+            >
+
+            <label for="subject">Subject or course</label>
+
+            <input
+                type="text"
+                id="subject"
+                placeholder="e.g. Financial Accounting"
+                required
+            >
+
+            <button type="submit" class="add-button">
+                + Add Study Task
+            </button>
+
+        </form>
+
+        <p class="status" id="status"></p>
+
+        <h2>My Tasks</h2>
+
+        <div id="taskList"></div>
+
+    </div>
+
+    <script>
+        const taskForm = document.getElementById("taskForm");
+        const taskTitle = document.getElementById("taskTitle");
+        const subject = document.getElementById("subject");
+        const taskList = document.getElementById("taskList");
+        const status = document.getElementById("status");
+
+        let tasks = [];
+
+        try {
+            const savedTasks = localStorage.getItem("studyTasks");
+
+            if (savedTasks) {
+                const parsedTasks = JSON.parse(savedTasks);
+
+                if (Array.isArray(parsedTasks)) {
+                    tasks = parsedTasks.filter(task =>
+                        task &&
+                        typeof task.title === "string" &&
+                        typeof task.subject === "string" &&
+                        typeof task.completed === "boolean"
+                    );
+                }
+            }
+        } catch (error) {
+            tasks = [];
+        }
+
+        function saveTasks() {
+            try {
+                localStorage.setItem(
+                    "studyTasks",
+                    JSON.stringify(tasks)
+                );
+                return true;
+            } catch (error) {
+                status.textContent =
+                    "Unable to save tasks. Please check browser storage.";
+                return false;
+            }
+        }
+
+        function renderTasks() {
+            taskList.replaceChildren();
+
+            if (tasks.length === 0) {
+                const message = document.createElement("p");
+                message.className = "message";
+                message.textContent =
+                    "No study tasks yet. Add your first task above!";
+                taskList.appendChild(message);
+                return;
+            }
+
+            tasks.forEach(task => {
+                const card = document.createElement("div");
+                card.className = task.completed
+                    ? "task completed"
+                    : "task";
+
+                const title = document.createElement("h3");
+                title.textContent = task.title;
+
+                const course = document.createElement("p");
+                course.textContent = "Subject: " + task.subject;
+
+                const taskStatus = document.createElement("p");
+                taskStatus.textContent = task.completed
+                    ? "Status: Completed"
+                    : "Status: Incomplete";
+
+                const completeButton =
+                    document.createElement("button");
+
+                completeButton.className = "complete-button";
+                completeButton.textContent = task.completed
+                    ? "Mark Incomplete"
+                    : "Mark Complete";
+
+                completeButton.addEventListener("click", () => {
+                    task.completed = !task.completed;
+                    saveTasks();
+                    renderTasks();
+                });
+
+                const deleteButton =
+                    document.createElement("button");
+
+                deleteButton.className = "delete-button";
+                deleteButton.textContent = "Delete";
+
+                deleteButton.addEventListener("click", () => {
+                    tasks = tasks.filter(item => item.id !== task.id);
+                    saveTasks();
+                    renderTasks();
+                    status.textContent = "Task deleted.";
+                });
+
+                card.append(
+                    title,
+                    course,
+                    taskStatus,
+                    completeButton,
+                    deleteButton
+                );
+
+                taskList.appendChild(card);
+            });
+        }
+
+        taskForm.addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const title = taskTitle.value.trim();
+            const course = subject.value.trim();
+
+            if (!title || !course) {
+                status.textContent =
+                    "Please enter both a task title and subject.";
+                return;
+            }
+
+            const newTask = {
+                id: Date.now() + Math.random(),
+                title: title,
+                subject: course,
+                completed: false
+            };
+
+            tasks.push(newTask);
+
+            if (saveTasks()) {
+                status.textContent = "Study task added successfully!";
+            }
+
+            taskForm.reset();
+            renderTasks();
+        });
+
+        renderTasks();
+    </script>
+
+</body>
+                                                    </html>
